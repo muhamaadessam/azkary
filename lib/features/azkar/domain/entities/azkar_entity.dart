@@ -4,7 +4,7 @@ class AzkarEntity {
   final int repeat;
   final String bless;
 
-  AzkarEntity({
+  const AzkarEntity({
     required this.zekr,
     required this.counter,
     required this.bless,

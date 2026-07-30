@@ -1,30 +1,51 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:azkary/features/azkar/domain/entities/azkar_entity.dart';
+import 'package:azkary/features/azkar/presentation/widgets/zekr_widget.dart';
 import 'package:azkary/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('home shows azkar choices', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('أذكاري'), findsOneWidget);
+    expect(find.text('أذكار الصباح'), findsOneWidget);
+    expect(find.text('أذكار المساء'), findsOneWidget);
   });
+
+  testWidgets('zekr separates basmala and shows verse numbers', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MyAppShell(
+        child: ZekrWidget(
+          azkar: AzkarEntity(
+            zekr:
+                'بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم قُلْ هُوَ ٱللَّهُ أَحَدٌ، ٱللَّهُ ٱلصَّمَدُ، لَمْ يَلِدْ وَلَمْ يُولَدْ، وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌۢ.',
+            counter: 3,
+            repeat: 3,
+            bless: '',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم'), findsOneWidget);
+    expect(find.text('١'), findsOneWidget);
+    expect(find.text('٤'), findsOneWidget);
+  });
+}
+
+class MyAppShell extends StatelessWidget {
+  const MyAppShell({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Directionality(textDirection: TextDirection.rtl, child: child),
+    );
+  }
 }

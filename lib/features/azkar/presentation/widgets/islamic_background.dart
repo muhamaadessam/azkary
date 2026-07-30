@@ -9,10 +9,7 @@ class IslamicBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _IslamicPatternPainter(),
-      child: child,
-    );
+    return CustomPaint(painter: _IslamicPatternPainter(), child: child);
   }
 }
 
@@ -29,7 +26,11 @@ class _IslamicPatternPainter extends CustomPainter {
       for (double x = -step; x < size.width + step; x += step) {
         final center = Offset(x, y);
         canvas.drawCircle(center, 22, pattern);
-        canvas.drawCircle(center + const Offset(step / 2, step / 2), 22, pattern);
+        canvas.drawCircle(
+          center + const Offset(step / 2, step / 2),
+          22,
+          pattern,
+        );
       }
     }
 
@@ -39,7 +40,12 @@ class _IslamicPatternPainter extends CustomPainter {
       ..color = const Color(0x33C08A28);
     final dome = Path()
       ..moveTo(size.width * .08, size.height * .98)
-      ..quadraticBezierTo(size.width * .5, size.height * .66, size.width * .92, size.height * .98);
+      ..quadraticBezierTo(
+        size.width * .5,
+        size.height * .66,
+        size.width * .92,
+        size.height * .98,
+      );
     canvas.drawPath(dome, accent);
 
     final starCenter = Offset(size.width - 58, 82);
