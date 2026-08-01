@@ -56,6 +56,73 @@ class SettingsScreen extends StatelessWidget {
                 shadowColor: const Color(0x330F3D34),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text('التذكير الدوري بالأذكار 🌿'),
+                        subtitle: const Text('إشعارات دورية بالأذكار والصلاة على النبي حتى عند إغلاق التطبيق'),
+                        value: state.periodicAzkarEnabled,
+                        activeThumbColor: theme.colorScheme.secondary,
+                        onChanged: (value) {
+                          context.read<SettingsCubit>().togglePeriodicAzkar(value);
+                        },
+                      ),
+                      if (state.periodicAzkarEnabled) ...[
+                        const Divider(indent: 16, endIndent: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'تكرار التنبيهات:',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8.0,
+                                runSpacing: 4.0,
+                                children: [
+                                  _buildIntervalChip(context, state, 15, 'كل 15 دقيقة'),
+                                  _buildIntervalChip(context, state, 30, 'كل 30 دقيقة'),
+                                  _buildIntervalChip(context, state, 60, 'كل ساعة'),
+                                  _buildIntervalChip(context, state, 120, 'كل ساعتين'),
+                                  _buildIntervalChip(context, state, 240, 'كل 4 ساعات'),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(44),
+                                  side: BorderSide(color: theme.colorScheme.primary),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.layers_outlined),
+                                label: const Text(
+                                  'تجربة ظهور النافذة المنبثقة الآن 🌿',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  context.read<SettingsCubit>().testOverlayWindow();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                shadowColor: const Color(0x330F3D34),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,6 +183,34 @@ class SettingsScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildIntervalChip(
+    BuildContext context,
+    SettingsState state,
+    int minutes,
+    String label,
+  ) {
+    final isSelected = state.periodicAzkarInterval == minutes;
+    final theme = Theme.of(context);
+
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.surface,
+      onSelected: (selected) {
+        if (selected) {
+          context.read<SettingsCubit>().updatePeriodicAzkarInterval(minutes);
+        }
+      },
     );
   }
 }

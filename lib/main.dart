@@ -3,8 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/services/notification_service.dart';
+import 'features/azkar/presentation/widgets/overlay_zekr_widget.dart';
 import 'features/settings/presentation/controllers/settings_cubit.dart';
 import 'features/settings/presentation/controllers/settings_state.dart';
+
+@pragma("vm:entry-point")
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: OverlayZekrWidget(),
+    ),
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
