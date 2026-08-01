@@ -2,8 +2,8 @@ import 'package:azkary/features/azkar/presentation/controllers/azkar_cubit.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../widgets/azkar_vertical_slider.dart';
 import '../widgets/islamic_background.dart';
-import '../widgets/zekr_widget.dart';
 
 class AzkarSabahScreen extends StatefulWidget {
   const AzkarSabahScreen({super.key});
@@ -37,10 +37,11 @@ class _AzkarSabahScreenState extends State<AzkarSabahScreen> {
                   _ when azkarList.isEmpty => const _Message(
                     text: 'تمت أذكار الصباح',
                   ),
-                  _ => ZekrWidget(
-                    azkar: azkarList.first,
-                    onTap: () =>
-                        cubit.changeCounterForAzkarSabah(azkarList.first),
+                  _ => AzkarVerticalSlider(
+                    azkarList: azkarList,
+                    totalAzkarCount: state.totalSabahAzkar,
+                    onTapCounter: (azkar) =>
+                        cubit.changeCounterForAzkarSabah(azkar),
                   ),
                 },
               ),
@@ -62,8 +63,8 @@ class _Message extends StatelessWidget {
     return Text(
       text,
       textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: Color(0xFF173F35),
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
         fontSize: 26,
         fontWeight: FontWeight.w700,
       ),

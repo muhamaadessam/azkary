@@ -4,6 +4,8 @@ class Assets {
 
   static const String azkarMassa = 'assets/jsons/azkar_massa.json';
   static const String azkarSabah = 'assets/jsons/azkar_sabah.json';
+  static const String azkarSleep = 'assets/jsons/azkar_sleep.json';
+  static const String azkarPostPrayer = 'assets/jsons/azkar_post_prayer.json';
   static const String traditionalArabic = 'assets/fonts/Traditional-Arabic.ttf';
 
 }
