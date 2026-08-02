@@ -24,17 +24,13 @@ class AzkarVerticalSlider extends StatefulWidget {
 
 class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     with SingleTickerProviderStateMixin {
-  late PageController _pageController;
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
-  double _currentPage = 0.0;
+  int _activeIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.78);
-    _pageController.addListener(_onScroll);
-
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -44,24 +40,17 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     );
   }
 
-  void _onScroll() {
-    if (_pageController.hasClients) {
-      setState(() {
-        _currentPage = _pageController.page ?? 0.0;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    _pageController.removeListener(_onScroll);
-    _pageController.dispose();
     _animController.dispose();
     super.dispose();
   }
 
   int get _activeCurrentIndex {
-    return _currentPage.round().clamp(0, widget.azkarList.isEmpty ? 0 : widget.azkarList.length - 1);
+    return _activeIndex.clamp(
+      0,
+      widget.azkarList.isEmpty ? 0 : widget.azkarList.length - 1,
+    );
   }
 
   void _handleTapActiveItem() {
@@ -83,12 +72,8 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     // If this tap will complete the repeat count (meaning repeat is now 1 before tap)
     if (activeAzkar.repeat == 1 && index < widget.azkarList.length - 1) {
       Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted && _pageController.hasClients) {
-          _pageController.animateToPage(
-            index + 1,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOutCubic,
-          );
+        if (mounted) {
+          setState(() => _activeIndex = index + 1);
         }
       });
     }
@@ -99,10 +84,11 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     final theme = Theme.of(context);
     final total = widget.totalAzkarCount;
     final activeIndex = _activeCurrentIndex;
-    final activeAzkar = widget.azkarList.isNotEmpty ? widget.azkarList[activeIndex] : null;
+    final activeAzkar = widget.azkarList.isNotEmpty
+        ? widget.azkarList[activeIndex]
+        : null;
 
     final completedCount = widget.azkarList.where((e) => e.repeat == 0).length;
-
     return Column(
       children: [
         // Top Progress Header
@@ -125,8 +111,12 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                   child: LinearProgressIndicator(
                     value: total == 0 ? 0 : (completedCount / total),
                     minHeight: 8,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.2,
+                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      theme.colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -136,145 +126,29 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
 
         // Vertical Card Slider Carousel
         Expanded(
-          child: PageView.builder(
-            scrollDirection: Axis.vertical,
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: widget.azkarList.length,
-            itemBuilder: (context, index) {
-              final azkar = widget.azkarList[index];
-              final difference = (index - _currentPage);
-              final scale = (1.0 - (difference.abs() * 0.12)).clamp(0.85, 1.0);
-              final opacity = (1.0 - (difference.abs() * 0.55)).clamp(0.35, 1.0);
-
-              return Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: index == activeIndex
-                              ? (azkar.isQuran
-                                  ? theme.colorScheme.secondary.withValues(alpha: 0.2)
-                                  : const Color(0x220F3D34))
-                              : Colors.black.withValues(alpha: 0.04),
-                          blurRadius: index == activeIndex ? 12 : 4,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: azkar.isQuran
-                            ? theme.colorScheme.secondary.withValues(alpha: 0.5)
-                            : theme.colorScheme.primary.withValues(alpha: 0.1),
-                        width: azkar.isQuran ? 1.5 : 1,
-                      ),
-                    ),
-                    child: InkWell(
-                      onTap: _handleTapActiveItem,
-                      borderRadius: BorderRadius.circular(22),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    if (azkar.isQuran) ...[
-                                      Center(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(
-                                              color: theme.colorScheme.secondary.withValues(alpha: 0.3),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.menu_book_rounded,
-                                                color: theme.colorScheme.secondary,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                azkar.surah ?? 'آية قرآنية',
-                                                style: TextStyle(
-                                                  color: theme.colorScheme.secondary,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                    ] else ...[
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        color: theme.colorScheme.secondary,
-                                        size: 24,
-                                      ),
-                                      const SizedBox(height: 10),
-                                    ],
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
-                                      child: ZekrText(
-                                        text: azkar.zekr,
-                                        isQuran: azkar.isQuran,
-                                      ),
-                                    ),
-                                    if (azkar.bless.isNotEmpty) ...[
-                                      const SizedBox(height: 12),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.primary.withValues(alpha: 0.05),
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(
-                                            color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          azkar.bless,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                            fontSize: 14,
-                                            height: 1.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ] else
-                                      const SizedBox.shrink(),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+          child: Center(
+            child: activeAzkar == null
+                ? const SizedBox.shrink()
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final offset = Tween<Offset>(
+                        begin: const Offset(0, 0.05),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(position: offset, child: child),
+                      );
+                    },
+                    child: _buildActiveCard(
+                      context,
+                      activeAzkar,
+                      key: ValueKey(activeIndex),
                     ),
                   ),
-                ),
-              );
-            },
           ),
         ),
 
@@ -287,7 +161,9 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
                 border: Border(
                   top: BorderSide(
                     color: theme.colorScheme.secondary.withValues(alpha: 0.2),
@@ -297,11 +173,16 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
               ),
               child: InkWell(
                 onTap: _handleTapActiveItem,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
                 child: SafeArea(
                   top: false,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -311,7 +192,9 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                                color: theme.colorScheme.secondary.withValues(
+                                  alpha: 0.12,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -357,10 +240,14 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                                 child: CircularProgressIndicator(
                                   value: activeAzkar.counter == 0
                                       ? 1.0
-                                      : activeAzkar.repeat / activeAzkar.counter,
+                                      : activeAzkar.repeat /
+                                            activeAzkar.counter,
                                   strokeWidth: 5,
-                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                                  backgroundColor: theme.colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    theme.colorScheme.secondary,
+                                  ),
                                   strokeCap: StrokeCap.round,
                                 ),
                               ),
@@ -372,7 +259,8 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.35),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -393,7 +281,9 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                                     Text(
                                       'من ${activeAzkar.counter}',
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.8),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.8,
+                                        ),
                                         fontSize: 10,
                                       ),
                                     ),
@@ -411,6 +301,136 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildActiveCard(
+    BuildContext context,
+    AzkarEntity azkar, {
+    required Key key,
+  }) {
+    final theme = Theme.of(context);
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.62;
+
+    return ConstrainedBox(
+      key: key,
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: azkar.isQuran
+                  ? theme.colorScheme.secondary.withValues(alpha: 0.2)
+                  : const Color(0x220F3D34),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: azkar.isQuran
+                ? theme.colorScheme.secondary.withValues(alpha: 0.5)
+                : theme.colorScheme.primary.withValues(alpha: 0.1),
+            width: azkar.isQuran ? 1.5 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: _handleTapActiveItem,
+          borderRadius: BorderRadius.circular(22),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (azkar.isQuran) ...[
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withValues(
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: theme.colorScheme.secondary.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.menu_book_rounded,
+                            color: theme.colorScheme.secondary,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            azkar.surah ?? 'آية قرآنية',
+                            style: TextStyle(
+                              color: theme.colorScheme.secondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ] else ...[
+                  Icon(
+                    Icons.auto_awesome,
+                    color: theme.colorScheme.secondary,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ZekrText(text: azkar.zekr, isQuran: azkar.isQuran),
+                ),
+                if (azkar.bless.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.08,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      azkar.bless,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

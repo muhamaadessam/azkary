@@ -10,10 +10,13 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الإعدادات', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'الإعدادات',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
@@ -24,10 +27,14 @@ class SettingsScreen extends StatelessWidget {
               Card(
                 elevation: 4,
                 shadowColor: const Color(0x330F3D34),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: SwitchListTile(
                   title: const Text('الوضع الليلي (Dark Mode)'),
-                  subtitle: const Text('تغيير ألوان التطبيق لتريح العين في الظلام'),
+                  subtitle: const Text(
+                    'تغيير ألوان التطبيق لتريح العين في الظلام',
+                  ),
                   value: state.isDarkMode,
                   activeThumbColor: theme.colorScheme.secondary,
                   onChanged: (value) {
@@ -39,10 +46,14 @@ class SettingsScreen extends StatelessWidget {
               Card(
                 elevation: 4,
                 shadowColor: const Color(0x330F3D34),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: SwitchListTile(
                   title: const Text('الاهتزاز (Haptic Feedback)'),
-                  subtitle: const Text('تفعيل الاهتزاز عند التفاعل مع أزرار التسبيح'),
+                  subtitle: const Text(
+                    'تفعيل الاهتزاز عند التفاعل مع أزرار التسبيح',
+                  ),
                   value: state.hapticsEnabled,
                   activeThumbColor: theme.colorScheme.secondary,
                   onChanged: (value) {
@@ -54,41 +65,78 @@ class SettingsScreen extends StatelessWidget {
               Card(
                 elevation: 4,
                 shadowColor: const Color(0x330F3D34),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('التذكير الدوري بالأذكار 🌿'),
-                        subtitle: const Text('إشعارات دورية بالأذكار والصلاة على النبي حتى عند إغلاق التطبيق'),
+                        title: const Text('الكبسولة الدورية بالأذكار 🌿'),
+                        subtitle: const Text(
+                          'إظهار الكبسولة بالأذكار حتى عند إغلاق التطبيق',
+                        ),
                         value: state.periodicAzkarEnabled,
                         activeThumbColor: theme.colorScheme.secondary,
                         onChanged: (value) {
-                          context.read<SettingsCubit>().togglePeriodicAzkar(value);
+                          context.read<SettingsCubit>().togglePeriodicAzkar(
+                            value,
+                          );
                         },
                       ),
                       if (state.periodicAzkarEnabled) ...[
                         const Divider(indent: 16, endIndent: 16),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
                                 'تكرار التنبيهات:',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8.0,
                                 runSpacing: 4.0,
                                 children: [
-                                  _buildIntervalChip(context, state, 15, 'كل 15 دقيقة'),
-                                  _buildIntervalChip(context, state, 30, 'كل 30 دقيقة'),
-                                  _buildIntervalChip(context, state, 60, 'كل ساعة'),
-                                  _buildIntervalChip(context, state, 120, 'كل ساعتين'),
-                                  _buildIntervalChip(context, state, 240, 'كل 4 ساعات'),
+                                  _buildIntervalChip(
+                                    context,
+                                    state,
+                                    15,
+                                    'كل 15 دقيقة',
+                                  ),
+                                  _buildIntervalChip(
+                                    context,
+                                    state,
+                                    30,
+                                    'كل 30 دقيقة',
+                                  ),
+                                  _buildIntervalChip(
+                                    context,
+                                    state,
+                                    60,
+                                    'كل ساعة',
+                                  ),
+                                  _buildIntervalChip(
+                                    context,
+                                    state,
+                                    120,
+                                    'كل ساعتين',
+                                  ),
+                                  _buildIntervalChip(
+                                    context,
+                                    state,
+                                    240,
+                                    'كل 4 ساعات',
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 12),
@@ -97,8 +145,12 @@ class SettingsScreen extends StatelessWidget {
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size.fromHeight(44),
-                                  side: BorderSide(color: theme.colorScheme.primary),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: BorderSide(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 icon: const Icon(Icons.layers_outlined),
                                 label: const Text(
@@ -106,7 +158,9 @@ class SettingsScreen extends StatelessWidget {
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 onPressed: () {
-                                  context.read<SettingsCubit>().testOverlayWindow();
+                                  context
+                                      .read<SettingsCubit>()
+                                      .testOverlayWindow();
                                 },
                               ),
                             ],
@@ -121,7 +175,9 @@ class SettingsScreen extends StatelessWidget {
               Card(
                 elevation: 4,
                 shadowColor: const Color(0x330F3D34),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -129,7 +185,10 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       const Text(
                         'حجم خط الأذكار',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -142,7 +201,9 @@ class SettingsScreen extends StatelessWidget {
                               max: 40.0,
                               activeColor: theme.colorScheme.secondary,
                               onChanged: (value) {
-                                context.read<SettingsCubit>().updateFontSize(value);
+                                context.read<SettingsCubit>().updateFontSize(
+                                  value,
+                                );
                               },
                             ),
                           ),

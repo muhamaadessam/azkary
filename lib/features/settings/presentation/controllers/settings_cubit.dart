@@ -6,13 +6,15 @@ import 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit()
-      : super(const SettingsState(
+    : super(
+        const SettingsState(
           fontSize: 25.0,
           hapticsEnabled: true,
           isDarkMode: false,
           periodicAzkarEnabled: true,
           periodicAzkarInterval: 30,
-        )) {
+        ),
+      ) {
     _loadSettings();
   }
 
@@ -24,15 +26,17 @@ class SettingsCubit extends Cubit<SettingsState> {
     final periodicAzkarEnabled = prefs.getBool('periodicAzkarEnabled') ?? true;
     final periodicAzkarInterval = prefs.getInt('periodicAzkarInterval') ?? 30;
 
-    emit(SettingsState(
-      fontSize: fontSize,
-      hapticsEnabled: hapticsEnabled,
-      isDarkMode: isDarkMode,
-      periodicAzkarEnabled: periodicAzkarEnabled,
-      periodicAzkarInterval: periodicAzkarInterval,
-    ));
+    emit(
+      SettingsState(
+        fontSize: fontSize,
+        hapticsEnabled: hapticsEnabled,
+        isDarkMode: isDarkMode,
+        periodicAzkarEnabled: periodicAzkarEnabled,
+        periodicAzkarInterval: periodicAzkarInterval,
+      ),
+    );
 
-    await NotificationService().schedulePeriodicAzkarNotifications(
+    await CapsuleService().schedulePeriodicCapsule(
       enabled: periodicAzkarEnabled,
       intervalMinutes: periodicAzkarInterval,
     );
@@ -61,7 +65,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     await prefs.setBool('periodicAzkarEnabled', enabled);
     emit(state.copyWith(periodicAzkarEnabled: enabled));
 
-    await NotificationService().schedulePeriodicAzkarNotifications(
+    await CapsuleService().schedulePeriodicCapsule(
       enabled: enabled,
       intervalMinutes: state.periodicAzkarInterval,
     );
@@ -73,7 +77,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(periodicAzkarInterval: intervalMinutes));
 
     if (state.periodicAzkarEnabled) {
-      await NotificationService().schedulePeriodicAzkarNotifications(
+      await CapsuleService().schedulePeriodicCapsule(
         enabled: true,
         intervalMinutes: intervalMinutes,
       );
@@ -81,6 +85,8 @@ class SettingsCubit extends Cubit<SettingsState> {
   }
 
   Future<void> testOverlayWindow() async {
-    await NotificationService().showOverlayWindow(zekrText: 'صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ');
+    await CapsuleService().showOverlayWindow(
+      zekrText: 'صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ',
+    );
   }
 }
