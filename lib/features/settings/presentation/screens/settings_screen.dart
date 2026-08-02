@@ -139,30 +139,6 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              const Divider(),
-                              const SizedBox(height: 8),
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(44),
-                                  side: BorderSide(
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.layers_outlined),
-                                label: const Text(
-                                  'تجربة ظهور النافذة المنبثقة الآن 🌿',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                onPressed: () {
-                                  context
-                                      .read<SettingsCubit>()
-                                      .testOverlayWindow();
-                                },
-                              ),
                             ],
                           ),
                         ),

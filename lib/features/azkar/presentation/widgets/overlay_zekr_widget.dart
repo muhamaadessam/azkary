@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
+import '../../../../core/data/capsule_azkar.dart';
+
 class OverlayZekrWidget extends StatefulWidget {
   const OverlayZekrWidget({super.key});
 
@@ -10,7 +12,7 @@ class OverlayZekrWidget extends StatefulWidget {
 }
 
 class _OverlayZekrWidgetState extends State<OverlayZekrWidget> {
-  String _zekrText = 'صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ';
+  String _zekrText = CapsuleAzkar.random();
   Timer? _dismissTimer;
 
   @override
@@ -24,9 +26,11 @@ class _OverlayZekrWidgetState extends State<OverlayZekrWidget> {
 
   void _initData() {
     FlutterOverlayWindow.overlayListener.listen((data) {
-      if (data != null && data is String && data.isNotEmpty) {
+      if (data is String && data.isNotEmpty) {
         setState(() {
-          _zekrText = data;
+          _zekrText = data == CapsuleAzkar.randomToken
+              ? CapsuleAzkar.random()
+              : data;
         });
       }
     });

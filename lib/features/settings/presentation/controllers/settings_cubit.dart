@@ -83,10 +83,4 @@ class SettingsCubit extends Cubit<SettingsState> {
       );
     }
   }
-
-  Future<void> testOverlayWindow() async {
-    await CapsuleService().showOverlayWindow(
-      zekrText: 'صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ',
-    );
-  }
 }

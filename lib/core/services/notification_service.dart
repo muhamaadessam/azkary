@@ -6,6 +6,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart'
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../data/capsule_azkar.dart';
+
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse details) {
   CapsuleService().showOverlayWindow(zekrText: details.payload);
@@ -77,7 +79,7 @@ class CapsuleService {
   }
 
   Future<void> showOverlayWindow({String? zekrText}) async {
-    final zekr = zekrText ?? 'صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ';
+    final zekr = zekrText ?? CapsuleAzkar.random();
     var hasPermission = await checkOverlayPermission();
 
     if (!hasPermission) {

@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -47,6 +48,14 @@ class CapsuleAlarmReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             !Settings.canDrawOverlays(context)
         ) {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}"),
+                ).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+            )
             return
         }
 
@@ -73,7 +82,7 @@ class CapsuleAlarmReceiver : BroadcastReceiver() {
                     engine.dartExecutor,
                     OverlayConstants.MESSENGER_TAG,
                     JSONMessageCodec.INSTANCE,
-                ).send("صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ")
+                ).send("__random_capsule_zekr__")
             }
         }, 700)
     }
