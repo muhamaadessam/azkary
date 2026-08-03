@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,11 +21,20 @@ void overlayMain() {
   );
 }
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
+  unawaited(_initializeNotifications());
+}
 
+Future<void> _initializeNotifications() async {
   final notificationService = CapsuleService();
   await notificationService.init();
+
+  if (defaultTargetPlatform == TargetPlatform.android &&
+      !await notificationService.checkOverlayPermission()) {
+    await notificationService.requestOverlayPermission();
+  }
 
   // Schedule morning azkar at 7:00 AM
   await notificationService.scheduleDailyNotification(
@@ -41,8 +53,6 @@ void main() async {
     hour: 17,
     minute: 0,
   );
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
