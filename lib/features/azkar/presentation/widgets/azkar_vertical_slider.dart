@@ -1,8 +1,14 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:audio_session/audio_session.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../../domain/entities/azkar_entity.dart';
+import '../../../../core/services/azkar_audio_service.dart';
 import '../../../settings/presentation/controllers/settings_cubit.dart';
 import 'zekr_widget.dart';
 
@@ -26,7 +32,20 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioSession? _audioSession;
+  Future<void>? _audioSessionReady;
   int _activeIndex = 0;
+  int? _audioIndex;
+  int _playbackId = 0;
+  bool _isAudioPlaying = false;
+  String? _downloadingUrl;
+  double? _downloadProgress;
+  bool _allAudioDownloaded = false;
+  final Map<String, String> _localAudioPaths = {};
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _cardKeys = [];
+  bool _finished = false;
 
   @override
   void initState() {
@@ -38,12 +57,217 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
+    _ensureCardKeys();
+    _refreshAudioStatus();
+    _audioSessionReady = _configureAudioSession();
+  }
+
+  @override
+  void didUpdateWidget(covariant AzkarVerticalSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _ensureCardKeys();
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _audioPlayer.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _ensureCardKeys() {
+    while (_cardKeys.length < widget.azkarList.length) {
+      _cardKeys.add(GlobalKey());
+    }
+    if (_cardKeys.length > widget.azkarList.length) {
+      _cardKeys.removeRange(widget.azkarList.length, _cardKeys.length);
+    }
+  }
+
+  Future<void> _refreshAudioStatus() async {
+    final urls = widget.azkarList
+        .map((azkar) => azkar.audioUrl)
+        .whereType<String>()
+        .toSet();
+    final downloaded = await AzkarAudioService.areAllDownloaded(urls);
+    if (mounted) setState(() => _allAudioDownloaded = downloaded);
+  }
+
+  Future<void> _configureAudioSession() async {
+    final session = await AudioSession.instance;
+    await session.configure(AudioSessionConfiguration.speech());
+    _audioSession = session;
+  }
+
+  void _scrollToActive() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cardContext = _cardKeys[_activeCurrentIndex].currentContext;
+      if (mounted && cardContext != null) {
+        Scrollable.ensureVisible(
+          cardContext,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          alignment: 0.08,
+        );
+      }
+    });
+  }
+
+  void _finishSession() {
+    if (_finished) return;
+    _playbackId++;
+    _isAudioPlaying = false;
+    unawaited(_audioPlayer.stop());
+    setState(() => _finished = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  void _cancelPlayback() {
+    _playbackId++;
+    _isAudioPlaying = false;
+    unawaited(_audioPlayer.stop());
+  }
+
+  Future<void> _playAudioSequenceFrom(int startIndex) async {
+    if (_finished || !mounted) return;
+    final playbackId = ++_playbackId;
+    var index = startIndex;
+    setState(() => _isAudioPlaying = true);
+    try {
+      while (mounted &&
+          !_finished &&
+          _isAudioPlaying &&
+          playbackId == _playbackId &&
+          index < widget.azkarList.length) {
+        final azkar = widget.azkarList[index];
+        final url = azkar.audioUrl;
+        if (url == null) {
+          if (index == widget.azkarList.length - 1) {
+            _finishSession();
+            return;
+          }
+          index++;
+          setState(() => _activeIndex = index);
+          _scrollToActive();
+          continue;
+        }
+
+        final path =
+            _localAudioPaths[url] ?? await AzkarAudioService.localPathFor(url);
+        if (path == null) {
+          if (mounted && playbackId == _playbackId) {
+            _cancelPlayback();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('حمّل المجموعة كاملة أولاً')),
+            );
+          }
+          return;
+        }
+        _localAudioPaths[url] = path;
+
+        if (mounted) {
+          setState(() {
+            _audioIndex = index;
+            _isAudioPlaying = true;
+          });
+        }
+
+        for (
+          var repetition = 0;
+          repetition < azkar.repeat &&
+              mounted &&
+              !_finished &&
+              _isAudioPlaying &&
+              playbackId == _playbackId;
+          repetition++
+        ) {
+          await _audioSessionReady;
+          await _audioSession?.setActive(true);
+          await _audioPlayer.stop();
+          await _audioPlayer.setFilePath(path);
+          await _audioPlayer.play();
+          if (!mounted || !_isAudioPlaying || playbackId != _playbackId) {
+            return;
+          }
+          widget.onTapCounter(azkar);
+        }
+
+        if (index == widget.azkarList.length - 1) {
+          _finishSession();
+          return;
+        }
+        index++;
+        setState(() => _activeIndex = index);
+        _scrollToActive();
+      }
+    } on PlayerException {
+      if (mounted && playbackId == _playbackId) {
+        _cancelPlayback();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر تشغيل الصوت')));
+      }
+    } finally {
+      if (mounted && !_finished && playbackId == _playbackId) {
+        setState(() => _isAudioPlaying = false);
+      }
+    }
+  }
+
+  Future<void> _toggleAudio() async {
+    if (_finished) return;
+    if (_isAudioPlaying) {
+      _cancelPlayback();
+      if (mounted) setState(() {});
+      return;
+    }
+    unawaited(_playAudioSequenceFrom(_activeCurrentIndex));
+  }
+
+  Future<void> _downloadAudio(String url) async {
+    if (_downloadingUrl != null) return;
+    setState(() => _downloadingUrl = url);
+    try {
+      _localAudioPaths[url] = await AzkarAudioService.download(url);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر تحميل الصوت')));
+      }
+    } finally {
+      if (mounted) setState(() => _downloadingUrl = null);
+    }
+  }
+
+  Future<void> _downloadAllAudio() async {
+    if (_downloadProgress != null) return;
+    final urls = widget.azkarList
+        .map((azkar) => azkar.audioUrl)
+        .whereType<String>()
+        .toSet()
+        .toList();
+    if (urls.isEmpty) return;
+
+    setState(() => _downloadProgress = 0);
+    try {
+      for (var i = 0; i < urls.length; i++) {
+        _localAudioPaths[urls[i]] = await AzkarAudioService.download(urls[i]);
+        if (mounted) setState(() => _downloadProgress = (i + 1) / urls.length);
+      }
+      if (mounted) setState(() => _allAudioDownloaded = true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر تحميل بعض الأصوات')));
+      }
+    } finally {
+      if (mounted) setState(() => _downloadProgress = null);
+    }
   }
 
   int get _activeCurrentIndex {
@@ -54,9 +278,13 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
   }
 
   void _handleTapActiveItem() {
-    if (widget.azkarList.isEmpty) return;
+    if (_finished || widget.azkarList.isEmpty) return;
     final index = _activeCurrentIndex;
     final activeAzkar = widget.azkarList[index];
+
+    if (_isAudioPlaying) {
+      _cancelPlayback();
+    }
 
     final haptics = context.read<SettingsCubit>().state.hapticsEnabled;
     if (haptics) {
@@ -70,12 +298,18 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     widget.onTapCounter(activeAzkar);
 
     // If this tap will complete the repeat count (meaning repeat is now 1 before tap)
-    if (activeAzkar.repeat == 1 && index < widget.azkarList.length - 1) {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          setState(() => _activeIndex = index + 1);
-        }
-      });
+    if (activeAzkar.repeat == 1) {
+      if (index == widget.azkarList.length - 1) {
+        _finishSession();
+      } else {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && !_finished) {
+            setState(() => _activeIndex = index + 1);
+            _scrollToActive();
+            unawaited(_playAudioSequenceFrom(index + 1));
+          }
+        });
+      }
     }
   }
 
@@ -89,6 +323,20 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
         : null;
 
     final completedCount = widget.azkarList.where((e) => e.repeat == 0).length;
+    if (_finished) {
+      return Center(
+        child: Text(
+          'تم الانتهاء من الأذكار',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         // Top Progress Header
@@ -120,35 +368,43 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                   ),
                 ),
               ),
+              const SizedBox(width: 4),
+              _downloadProgress == null
+                  ? IconButton(
+                      tooltip: _allAudioDownloaded
+                          ? 'تم تحميل كل الأصوات'
+                          : 'تحميل كل الأصوات',
+                      onPressed: _allAudioDownloaded ? null : _downloadAllAudio,
+                      icon: Icon(
+                        _allAudioDownloaded
+                            ? Icons.check_circle_rounded
+                            : Icons.download_rounded,
+                      ),
+                    )
+                  : SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        value: _downloadProgress,
+                        strokeWidth: 3,
+                      ),
+                    ),
             ],
           ),
         ),
 
-        // Vertical Card Slider Carousel
+        // All cards stay on the page; only the active card is interactive.
         Expanded(
-          child: Center(
-            child: activeAzkar == null
-                ? const SizedBox.shrink()
-                : AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      final offset = Tween<Offset>(
-                        begin: const Offset(0, 0.05),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(position: offset, child: child),
-                      );
-                    },
-                    child: _buildActiveCard(
-                      context,
-                      activeAzkar,
-                      key: ValueKey(activeIndex),
-                    ),
-                  ),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              children: [
+                for (var index = 0; index < widget.azkarList.length; index++)
+                  _buildCard(context, widget.azkarList[index], index),
+              ],
+            ),
           ),
         ),
 
@@ -304,16 +560,35 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     );
   }
 
+  Widget _buildCard(BuildContext context, AzkarEntity azkar, int index) {
+    final isActive = index == _activeCurrentIndex;
+    final card = _buildActiveCard(context, azkar, isActive: isActive);
+
+    return Padding(
+      key: _cardKeys[index],
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: IgnorePointer(
+        ignoring: !isActive,
+        child: isActive
+            ? card
+            : ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Opacity(opacity: 0.58, child: card),
+              ),
+      ),
+    );
+  }
+
   Widget _buildActiveCard(
     BuildContext context,
     AzkarEntity azkar, {
-    required Key key,
+    required bool isActive,
   }) {
     final theme = Theme.of(context);
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.62;
+    final maxHeight =
+        MediaQuery.sizeOf(context).height * (isActive ? 0.62 : 0.2);
 
     return ConstrainedBox(
-      key: key,
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: Container(
         width: double.infinity,
@@ -338,7 +613,7 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
           ),
         ),
         child: InkWell(
-          onTap: _handleTapActiveItem,
+          onTap: isActive ? _handleTapActiveItem : null,
           borderRadius: BorderRadius.circular(22),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -346,6 +621,49 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (azkar.audioUrl != null)
+                  Align(
+                    alignment: AlignmentDirectional.topStart,
+                    child: FutureBuilder<String?>(
+                      future: AzkarAudioService.localPathFor(azkar.audioUrl!),
+                      builder: (context, snapshot) {
+                        final localPath =
+                            _localAudioPaths[azkar.audioUrl!] ?? snapshot.data;
+                        if (localPath != null) {
+                          _localAudioPaths[azkar.audioUrl!] = localPath;
+                        }
+                        if (_downloadingUrl == azkar.audioUrl) {
+                          return const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        return IconButton.filledTonal(
+                          tooltip: localPath == null
+                              ? 'تحميل الصوت على الجهاز'
+                              : _isAudioPlaying &&
+                                    _audioIndex == _activeCurrentIndex
+                              ? 'إيقاف الصوت'
+                              : 'استمع بدون إنترنت',
+                          onPressed: localPath == null
+                              ? () => _downloadAudio(azkar.audioUrl!)
+                              : _toggleAudio,
+                          icon: Icon(
+                            localPath == null
+                                ? Icons.download_rounded
+                                : _isAudioPlaying &&
+                                      _audioIndex == _activeCurrentIndex
+                                ? Icons.pause_rounded
+                                : Icons.volume_up_rounded,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 if (azkar.isQuran) ...[
                   Center(
                     child: Container(

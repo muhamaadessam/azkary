@@ -5,6 +5,7 @@ class AzkarEntity {
   final String bless;
   final bool isQuran;
   final String? surah;
+  final String? audioUrl;
 
   const AzkarEntity({
     required this.zekr,
@@ -13,6 +14,7 @@ class AzkarEntity {
     required this.repeat,
     this.isQuran = false,
     this.surah,
+    this.audioUrl,
   });
 
   factory AzkarEntity.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class AzkarEntity {
       bless: json["bless"] as String? ?? "",
       isQuran: isQuranVal ?? _checkIfQuran(zekrText),
       surah: json["surah"] as String?,
+      audioUrl: json["audio"] as String?,
     );
   }
 
@@ -49,6 +52,7 @@ class AzkarEntity {
     String? bless,
     bool? isQuran,
     String? surah,
+    String? audioUrl,
   }) {
     return AzkarEntity(
       zekr: zekr ?? this.zekr,
@@ -57,6 +61,7 @@ class AzkarEntity {
       bless: bless ?? this.bless,
       isQuran: isQuran ?? this.isQuran,
       surah: surah ?? this.surah,
+      audioUrl: audioUrl ?? this.audioUrl,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/azkar_audio_catalog.dart';
 import '../../../../res/assets.dart';
 import '../../domain/entities/azkar_entity.dart';
 
@@ -11,19 +12,32 @@ part 'azkar_state.dart';
 class AzkarCubit extends Cubit<AzkarState> {
   AzkarCubit() : super(AzkarState(status: AzkarStatus.initial));
 
+  List<AzkarEntity> _withAudio(
+    List<AzkarEntity> azkar,
+    List<String?> audioUrls,
+  ) => [
+    for (var i = 0; i < azkar.length; i++)
+      azkar[i].copyWith(audioUrl: i < audioUrls.length ? audioUrls[i] : null),
+  ];
+
   Future<void> getAzkarSabah() async {
     emit(AzkarState(status: AzkarStatus.loading));
     try {
       final String response = await rootBundle.loadString(Assets.azkarSabah);
       final data = await json.decode(response);
-      final azkarList = List<AzkarEntity>.from(
-        (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+      final azkarList = _withAudio(
+        List<AzkarEntity>.from(
+          (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+        ),
+        AzkarAudioCatalog.morning,
       );
-      emit(AzkarState(
-        status: AzkarStatus.loaded,
-        azkarSabahList: azkarList,
-        totalSabahAzkar: azkarList.length,
-      ));
+      emit(
+        AzkarState(
+          status: AzkarStatus.loaded,
+          azkarSabahList: azkarList,
+          totalSabahAzkar: azkarList.length,
+        ),
+      );
     } catch (e) {
       emit(AzkarState(status: AzkarStatus.error, error: e.toString()));
     }
@@ -34,14 +48,19 @@ class AzkarCubit extends Cubit<AzkarState> {
     try {
       final String response = await rootBundle.loadString(Assets.azkarMassa);
       final data = await json.decode(response);
-      final azkarList = List<AzkarEntity>.from(
-        (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+      final azkarList = _withAudio(
+        List<AzkarEntity>.from(
+          (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+        ),
+        AzkarAudioCatalog.evening,
       );
-      emit(AzkarState(
-        status: AzkarStatus.loaded,
-        azkarMassaList: azkarList,
-        totalMassaAzkar: azkarList.length,
-      ));
+      emit(
+        AzkarState(
+          status: AzkarStatus.loaded,
+          azkarMassaList: azkarList,
+          totalMassaAzkar: azkarList.length,
+        ),
+      );
     } catch (e) {
       emit(AzkarState(status: AzkarStatus.error, error: e.toString()));
     }
@@ -76,14 +95,19 @@ class AzkarCubit extends Cubit<AzkarState> {
     try {
       final String response = await rootBundle.loadString(Assets.azkarSleep);
       final data = await json.decode(response);
-      final azkarList = List<AzkarEntity>.from(
-        (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+      final azkarList = _withAudio(
+        List<AzkarEntity>.from(
+          (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+        ),
+        AzkarAudioCatalog.sleep,
       );
-      emit(state.copyWith(
-        status: AzkarStatus.loaded,
-        azkarSleepList: azkarList,
-        totalSleepAzkar: azkarList.length,
-      ));
+      emit(
+        state.copyWith(
+          status: AzkarStatus.loaded,
+          azkarSleepList: azkarList,
+          totalSleepAzkar: azkarList.length,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(status: AzkarStatus.error, error: e.toString()));
     }
@@ -92,16 +116,23 @@ class AzkarCubit extends Cubit<AzkarState> {
   Future<void> getAzkarPostPrayer() async {
     emit(state.copyWith(status: AzkarStatus.loading));
     try {
-      final String response = await rootBundle.loadString(Assets.azkarPostPrayer);
-      final data = await json.decode(response);
-      final azkarList = List<AzkarEntity>.from(
-        (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+      final String response = await rootBundle.loadString(
+        Assets.azkarPostPrayer,
       );
-      emit(state.copyWith(
-        status: AzkarStatus.loaded,
-        azkarPostPrayerList: azkarList,
-        totalPostPrayerAzkar: azkarList.length,
-      ));
+      final data = await json.decode(response);
+      final azkarList = _withAudio(
+        List<AzkarEntity>.from(
+          (data['content'] as List).map((e) => AzkarEntity.fromJson(e)),
+        ),
+        AzkarAudioCatalog.postPrayer,
+      );
+      emit(
+        state.copyWith(
+          status: AzkarStatus.loaded,
+          azkarPostPrayerList: azkarList,
+          totalPostPrayerAzkar: azkarList.length,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(status: AzkarStatus.error, error: e.toString()));
     }
