@@ -365,7 +365,7 @@ class ZekrText extends StatelessWidget {
   final String text;
   final bool isQuran;
 
-  static const _basmala = 'بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم';
+  static const _basmala = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
   static const _istiadha = 'أَعُوذُ بِاللهِ مِنْ الشَّيْطَانِ الرَّجِيمِ';
 
   @override
