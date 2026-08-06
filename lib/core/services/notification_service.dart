@@ -96,7 +96,7 @@ class CapsuleService {
     }
 
     await FlutterOverlayWindow.showOverlay(
-      height: 180,
+      height: 240,
       width: WindowSize.matchParent,
       alignment: OverlayAlignment.centerRight,
       flag: OverlayFlag.focusPointer,

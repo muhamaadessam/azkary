@@ -39,7 +39,6 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
   int? _audioIndex;
   int _playbackId = 0;
   bool _isAudioPlaying = false;
-  String? _downloadingUrl;
   double? _downloadProgress;
   bool _allAudioDownloaded = false;
   final Map<String, String> _localAudioPaths = {};
@@ -60,6 +59,14 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     _ensureCardKeys();
     _refreshAudioStatus();
     _audioSessionReady = _configureAudioSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final autoPlay = context.read<SettingsCubit>().state.autoPlayAudio;
+        if (autoPlay) {
+          unawaited(_playAudioSequenceFrom(0));
+        }
+      }
+    });
   }
 
   @override
@@ -129,6 +136,77 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     _playbackId++;
     _isAudioPlaying = false;
     unawaited(_audioPlayer.stop());
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<String?> _getOrDownloadAudio(String url) async {
+    final cached = _localAudioPaths[url];
+    if (cached != null) return cached;
+    try {
+      final path = await AzkarAudioService.download(url);
+      _localAudioPaths[url] = path;
+      return path;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _playSingleAudioTrack(String path, int playbackId) async {
+    await _audioSessionReady;
+    await _audioSession?.setActive(true);
+    await _audioPlayer.stop();
+    await _audioPlayer.setFilePath(path);
+    await _audioPlayer.play();
+
+    if (_audioPlayer.processingState == ProcessingState.completed) {
+      return;
+    }
+
+    await _audioPlayer.playerStateStream.firstWhere(
+      (state) =>
+          state.processingState == ProcessingState.completed ||
+          playbackId != _playbackId ||
+          !_isAudioPlaying ||
+          !mounted,
+    );
+  }
+
+  Future<void> _playSingleAudioForUrl(String url, int index) async {
+    final path = await _getOrDownloadAudio(url);
+    if (path == null || !mounted) return;
+
+    final playbackId = ++_playbackId;
+    setState(() {
+      _isAudioPlaying = true;
+      _audioIndex = index;
+    });
+
+    try {
+      await _audioSessionReady;
+      await _audioSession?.setActive(true);
+      await _audioPlayer.stop();
+      await _audioPlayer.setFilePath(path);
+      await _audioPlayer.play();
+
+      if (_audioPlayer.processingState != ProcessingState.completed) {
+        await _audioPlayer.playerStateStream.firstWhere(
+          (state) =>
+              state.processingState == ProcessingState.completed ||
+              playbackId != _playbackId ||
+              !_isAudioPlaying ||
+              !mounted,
+        );
+      }
+    } catch (_) {
+    } finally {
+      if (mounted && playbackId == _playbackId) {
+        setState(() {
+          _isAudioPlaying = false;
+        });
+      }
+    }
   }
 
   Future<void> _playAudioSequenceFrom(int startIndex) async {
@@ -145,28 +223,26 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
         final azkar = widget.azkarList[index];
         final url = azkar.audioUrl;
         if (url == null) {
-          if (index == widget.azkarList.length - 1) {
-            _finishSession();
-            return;
+          if (mounted && playbackId == _playbackId) {
+            setState(() {
+              _activeIndex = index;
+              _isAudioPlaying = false;
+            });
+            _scrollToActive();
           }
-          index++;
-          setState(() => _activeIndex = index);
-          _scrollToActive();
-          continue;
+          return;
         }
 
-        final path =
-            _localAudioPaths[url] ?? await AzkarAudioService.localPathFor(url);
+        final path = await _getOrDownloadAudio(url);
         if (path == null) {
           if (mounted && playbackId == _playbackId) {
             _cancelPlayback();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('حمّل المجموعة كاملة أولاً')),
+              const SnackBar(content: Text('تعذر تحميل الملف الصوتي')),
             );
           }
           return;
         }
-        _localAudioPaths[url] = path;
 
         if (mounted) {
           setState(() {
@@ -175,24 +251,19 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
           });
         }
 
-        for (
-          var repetition = 0;
-          repetition < azkar.repeat &&
-              mounted &&
-              !_finished &&
-              _isAudioPlaying &&
-              playbackId == _playbackId;
-          repetition++
-        ) {
-          await _audioSessionReady;
-          await _audioSession?.setActive(true);
-          await _audioPlayer.stop();
-          await _audioPlayer.setFilePath(path);
-          await _audioPlayer.play();
+        var remainingRepeat = widget.azkarList[index].repeat;
+        while (remainingRepeat > 0 &&
+            mounted &&
+            !_finished &&
+            _isAudioPlaying &&
+            playbackId == _playbackId) {
+          final currentAzkar = widget.azkarList[index];
+          await _playSingleAudioTrack(path, playbackId);
           if (!mounted || !_isAudioPlaying || playbackId != _playbackId) {
             return;
           }
-          widget.onTapCounter(azkar);
+          remainingRepeat--;
+          widget.onTapCounter(currentAzkar);
         }
 
         if (index == widget.azkarList.length - 1) {
@@ -217,31 +288,19 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     }
   }
 
-  Future<void> _toggleAudio() async {
+  Future<void> _toggleAudioForIndex([int? targetIndex]) async {
     if (_finished) return;
-    if (_isAudioPlaying) {
+    final index = targetIndex ?? _activeCurrentIndex;
+    if (_isAudioPlaying && _audioIndex == index) {
       _cancelPlayback();
       if (mounted) setState(() {});
       return;
     }
-    unawaited(_playAudioSequenceFrom(_activeCurrentIndex));
+    setState(() => _activeIndex = index);
+    _scrollToActive();
+    unawaited(_playAudioSequenceFrom(index));
   }
 
-  Future<void> _downloadAudio(String url) async {
-    if (_downloadingUrl != null) return;
-    setState(() => _downloadingUrl = url);
-    try {
-      _localAudioPaths[url] = await AzkarAudioService.download(url);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر تحميل الصوت')));
-      }
-    } finally {
-      if (mounted) setState(() => _downloadingUrl = null);
-    }
-  }
 
   Future<void> _downloadAllAudio() async {
     if (_downloadProgress != null) return;
@@ -282,6 +341,7 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
     final index = _activeCurrentIndex;
     final activeAzkar = widget.azkarList[index];
 
+    final wasAudioPlaying = _isAudioPlaying;
     if (_isAudioPlaying) {
       _cancelPlayback();
     }
@@ -295,7 +355,13 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
       _animController.reverse();
     });
 
+    final autoPlayEnabled = context.read<SettingsCubit>().state.autoPlayAudio;
+
     widget.onTapCounter(activeAzkar);
+
+    if (autoPlayEnabled && activeAzkar.audioUrl != null) {
+      unawaited(_playSingleAudioForUrl(activeAzkar.audioUrl!, index));
+    }
 
     // If this tap will complete the repeat count (meaning repeat is now 1 before tap)
     if (activeAzkar.repeat == 1) {
@@ -306,7 +372,9 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
           if (mounted && !_finished) {
             setState(() => _activeIndex = index + 1);
             _scrollToActive();
-            unawaited(_playAudioSequenceFrom(index + 1));
+            if (wasAudioPlaying || autoPlayEnabled) {
+              unawaited(_playAudioSequenceFrom(index + 1));
+            }
           }
         });
       }
@@ -562,7 +630,12 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
 
   Widget _buildCard(BuildContext context, AzkarEntity azkar, int index) {
     final isActive = index == _activeCurrentIndex;
-    final card = _buildActiveCard(context, azkar, isActive: isActive);
+    final card = _buildActiveCard(
+      context,
+      azkar,
+      index: index,
+      isActive: isActive,
+    );
 
     return Padding(
       key: _cardKeys[index],
@@ -582,6 +655,7 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
   Widget _buildActiveCard(
     BuildContext context,
     AzkarEntity azkar, {
+    required int index,
     required bool isActive,
   }) {
     final theme = Theme.of(context);
@@ -624,44 +698,16 @@ class _AzkarVerticalSliderState extends State<AzkarVerticalSlider>
                 if (azkar.audioUrl != null)
                   Align(
                     alignment: AlignmentDirectional.topStart,
-                    child: FutureBuilder<String?>(
-                      future: AzkarAudioService.localPathFor(azkar.audioUrl!),
-                      builder: (context, snapshot) {
-                        final localPath =
-                            _localAudioPaths[azkar.audioUrl!] ?? snapshot.data;
-                        if (localPath != null) {
-                          _localAudioPaths[azkar.audioUrl!] = localPath;
-                        }
-                        if (_downloadingUrl == azkar.audioUrl) {
-                          return const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          );
-                        }
-                        return IconButton.filledTonal(
-                          tooltip: localPath == null
-                              ? 'تحميل الصوت على الجهاز'
-                              : _isAudioPlaying &&
-                                    _audioIndex == _activeCurrentIndex
-                              ? 'إيقاف الصوت'
-                              : 'استمع بدون إنترنت',
-                          onPressed: localPath == null
-                              ? () => _downloadAudio(azkar.audioUrl!)
-                              : _toggleAudio,
-                          icon: Icon(
-                            localPath == null
-                                ? Icons.download_rounded
-                                : _isAudioPlaying &&
-                                      _audioIndex == _activeCurrentIndex
-                                ? Icons.pause_rounded
-                                : Icons.volume_up_rounded,
-                          ),
-                        );
-                      },
+                    child: IconButton.filledTonal(
+                      tooltip: _isAudioPlaying && _audioIndex == index
+                          ? 'إيقاف الصوت'
+                          : 'تشغيل الصوت',
+                      onPressed: () => _toggleAudioForIndex(index),
+                      icon: Icon(
+                        _isAudioPlaying && _audioIndex == index
+                            ? Icons.pause_rounded
+                            : Icons.volume_up_rounded,
+                      ),
                     ),
                   ),
                 if (azkar.isQuran) ...[

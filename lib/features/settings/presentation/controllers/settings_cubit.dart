@@ -25,6 +25,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     final isDarkMode = prefs.getBool('isDarkMode') ?? false;
     final periodicAzkarEnabled = prefs.getBool('periodicAzkarEnabled') ?? true;
     final periodicAzkarInterval = prefs.getInt('periodicAzkarInterval') ?? 30;
+    final autoPlayAudio = prefs.getBool('autoPlayAudio') ?? false;
 
     emit(
       SettingsState(
@@ -33,6 +34,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         isDarkMode: isDarkMode,
         periodicAzkarEnabled: periodicAzkarEnabled,
         periodicAzkarInterval: periodicAzkarInterval,
+        autoPlayAudio: autoPlayAudio,
       ),
     );
 
@@ -58,6 +60,12 @@ class SettingsCubit extends Cubit<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkMode', isDark);
     emit(state.copyWith(isDarkMode: isDark));
+  }
+
+  Future<void> toggleAutoPlayAudio(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('autoPlayAudio', enabled);
+    emit(state.copyWith(autoPlayAudio: enabled));
   }
 
   Future<void> togglePeriodicAzkar(bool enabled) async {

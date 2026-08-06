@@ -68,6 +68,25 @@ class SettingsScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
+                child: SwitchListTile(
+                  title: const Text('التشغيل الصوتي التلقائي 🔊'),
+                  subtitle: const Text(
+                    'تشغيل الصوت تلقائياً عند فتح شاشات الأذكار',
+                  ),
+                  value: state.autoPlayAudio,
+                  activeThumbColor: theme.colorScheme.secondary,
+                  onChanged: (value) {
+                    context.read<SettingsCubit>().toggleAutoPlayAudio(value);
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                shadowColor: const Color(0x330F3D34),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(

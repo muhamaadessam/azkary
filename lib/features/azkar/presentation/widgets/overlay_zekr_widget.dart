@@ -42,6 +42,13 @@ class _OverlayZekrWidgetState extends State<OverlayZekrWidget> {
     super.dispose();
   }
 
+  double _getFontSize(String text) {
+    if (text.length > 130) return 16.0;
+    if (text.length > 80) return 18.0;
+    if (text.length > 40) return 19.5;
+    return 21.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -56,7 +63,8 @@ class _OverlayZekrWidgetState extends State<OverlayZekrWidget> {
             },
             child: Container(
               margin: const EdgeInsets.only(right: 16, left: 32),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              constraints: const BoxConstraints(maxHeight: 210),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFBF0),
                 borderRadius: BorderRadius.circular(28),
@@ -69,15 +77,18 @@ class _OverlayZekrWidgetState extends State<OverlayZekrWidget> {
                   ),
                 ],
               ),
-              child: Text(
-                _zekrText,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Traditional',
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F6B55),
-                  height: 1.3,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Text(
+                  _zekrText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Traditional',
+                    fontSize: _getFontSize(_zekrText),
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F6B55),
+                    height: 1.55,
+                  ),
                 ),
               ),
             ),

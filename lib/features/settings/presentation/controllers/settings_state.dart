@@ -6,6 +6,7 @@ class SettingsState extends Equatable {
   final bool isDarkMode;
   final bool periodicAzkarEnabled;
   final int periodicAzkarInterval;
+  final bool autoPlayAudio;
 
   const SettingsState({
     required this.fontSize,
@@ -13,6 +14,7 @@ class SettingsState extends Equatable {
     required this.isDarkMode,
     this.periodicAzkarEnabled = true,
     this.periodicAzkarInterval = 30,
+    this.autoPlayAudio = false,
   });
 
   SettingsState copyWith({
@@ -21,22 +23,26 @@ class SettingsState extends Equatable {
     bool? isDarkMode,
     bool? periodicAzkarEnabled,
     int? periodicAzkarInterval,
+    bool? autoPlayAudio,
   }) {
     return SettingsState(
       fontSize: fontSize ?? this.fontSize,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       isDarkMode: isDarkMode ?? this.isDarkMode,
       periodicAzkarEnabled: periodicAzkarEnabled ?? this.periodicAzkarEnabled,
-      periodicAzkarInterval: periodicAzkarInterval ?? this.periodicAzkarInterval,
+      periodicAzkarInterval:
+          periodicAzkarInterval ?? this.periodicAzkarInterval,
+      autoPlayAudio: autoPlayAudio ?? this.autoPlayAudio,
     );
   }
 
   @override
   List<Object> get props => [
-        fontSize,
-        hapticsEnabled,
-        isDarkMode,
-        periodicAzkarEnabled,
-        periodicAzkarInterval,
-      ];
+    fontSize,
+    hapticsEnabled,
+    isDarkMode,
+    periodicAzkarEnabled,
+    periodicAzkarInterval,
+    autoPlayAudio,
+  ];
 }
