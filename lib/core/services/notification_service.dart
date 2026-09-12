@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
@@ -7,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../data/capsule_azkar.dart';
+import '../database/capsule_azkar_database.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse details) {
@@ -79,7 +81,16 @@ class CapsuleService {
   }
 
   Future<void> showOverlayWindow({String? zekrText}) async {
-    final zekr = zekrText ?? CapsuleAzkar.random();
+    String zekr = zekrText ?? '';
+    if (zekr.isEmpty) {
+      try {
+        final dbZekr =
+            await CapsuleAzkarDatabase.instance.getRandomEnabledZekr();
+        zekr = dbZekr?.text ?? CapsuleAzkar.random();
+      } catch (_) {
+        zekr = CapsuleAzkar.random();
+      }
+    }
     var hasPermission = await checkOverlayPermission();
 
     if (!hasPermission) {
@@ -95,8 +106,13 @@ class CapsuleService {
       await FlutterOverlayWindow.closeOverlay();
     }
 
+    final density = WidgetsBinding
+            .instance.platformDispatcher.views.firstOrNull?.devicePixelRatio ??
+        3.0;
+    final overlayHeight = (180 * density).round();
+
     await FlutterOverlayWindow.showOverlay(
-      height: 240,
+      height: overlayHeight,
       width: WindowSize.matchParent,
       alignment: OverlayAlignment.centerRight,
       flag: OverlayFlag.focusPointer,

@@ -59,8 +59,9 @@ class CapsuleAlarmReceiver : BroadcastReceiver() {
             return
         }
 
+        val density = context.resources.displayMetrics.density
         WindowSetup.width = WindowSize.MATCH_PARENT
-        WindowSetup.height = 180
+        WindowSetup.height = (180 * density).toInt()
         WindowSetup.setGravityFromAlignment("centerRight")
         WindowSetup.setFlag("focusPointer")
         WindowSetup.setNotificationVisibility("visibilityPublic")

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:sqflite/sqflite.dart';
+
 import 'core/services/notification_service.dart';
 import 'features/azkar/presentation/widgets/overlay_zekr_widget.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
@@ -13,6 +15,7 @@ import 'features/settings/presentation/controllers/settings_state.dart';
 @pragma("vm:entry-point")
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
+  SqflitePlugin.registerWith();
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -23,6 +26,7 @@ void overlayMain() {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SqflitePlugin.registerWith();
   runApp(const MyApp());
   unawaited(_initializeNotifications());
 }

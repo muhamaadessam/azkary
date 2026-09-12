@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/notification_service.dart';
+import '../../../azkar/presentation/screens/capsule_azkar_manager_screen.dart';
 import '../controllers/settings_cubit.dart';
 import '../controllers/settings_state.dart';
 
@@ -162,6 +164,70 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ),
                       ],
+                      const Divider(indent: 16, endIndent: 16),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.format_list_bulleted_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        title: const Text(
+                          'إدارة وتخصيص أذكار الكبسولة',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: const Text(
+                          'تصفح الفئات، الفضائل، إضافة وتعديل الأذكار',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 16),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CapsuleAzkarManagerScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: theme.colorScheme.primary,
+                              side: BorderSide(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              CapsuleService().showOverlayWindow();
+                            },
+                            icon: const Icon(Icons.remove_red_eye_outlined),
+                            label: const Text(
+                              'تجربة ظهور الكبسولة الآن',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
